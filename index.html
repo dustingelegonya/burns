@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ken Burns Panorama Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0f0f0f;
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #ffffff;
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .upload-section {
+            background: #1a1a1a;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            border: 2px dashed #333;
+            transition: all 0.3s ease;
+        }
+
+        .upload-section:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.1);
+        }
+
+        .drop-zone {
+            text-align: center;
+            padding: 40px;
+            cursor: pointer;
+        }
+
+        .drop-zone.dragover {
+            background: #222;
+            border-color: #667eea;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            display: inline-block;
+            margin: 10px;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .controls {
+            background: #1a1a1a;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-group label {
+            color: #ccc;
+            font-weight: 500;
+        }
+
+        .control-group input,
+        .control-group select {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            color: #e0e0e0;
+            padding: 10px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .control-group input:focus,
+        .control-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+        }
+
+        .preview-section {
+            background: #1a1a1a;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .panorama-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .generate-btn {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            color: white;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            display: block;
+            margin: 20px auto;
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
+        }
+
+        .generate-btn:disabled {
+            background: #444;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #333;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .download-section {
+            text-align: center;
+            display: none;
+        }
+
+        .download-btn {
+            background: linear-gradient(135deg, #2ed573 0%, #1e90ff 100%);
+            color: white;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(46, 213, 115, 0.4);
+        }
+
+        .image-preview {
+            max-width: 200px;
+            max-height: 100px;
+            border-radius: 8px;
+            margin: 10px;
+            border: 2px solid #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Ken Burns Panorama Generator</h1>
+        
+        <div class="upload-section">
+            <div class="drop-zone" id="dropZone">
+                <p style="font-size: 18px; margin-bottom: 15px;">Drop panoramic images here or click to select</p>
+                <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                    Choose Images
+                </button>
+                <input type="file" id="fileInput" class="file-input" multiple accept="image/*">
+                <div id="imagePreview" style="margin-top: 20px;"></div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="duration">Duration per Image (seconds)</label>
+                <input type="number" id="duration" value="5" min="2" max="20">
+            </div>
+            <div class="control-group">
+                <label for="zoomIntensity">Zoom Intensity</label>
+                <input type="range" id="zoomIntensity" min="1.1" max="2.0" step="0.1" value="1.3">
+                <span id="zoomValue">1.3x</span>
+            </div>
+            <div class="control-group">
+                <label for="panDirection">Pan Direction</label>
+                <select id="panDirection">
+                    <option value="random">Random</option>
+                    <option value="left-to-right">Left to Right</option>
+                    <option value="right-to-left">Right to Left</option>
+                    <option value="top-to-bottom">Top to Bottom</option>
+                    <option value="bottom-to-top">Bottom to Top</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="transition">Transition</label>
+                <select id="transition">
+                    <option value="fade">Fade</option>
+                    <option value="none">None</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="fps">Frame Rate (FPS)</label>
+                <input type="number" id="fps" value="30" min="24" max="60">
+            </div>
+            <div class="control-group">
+                <label for="quality">Quality</label>
+                <select id="quality">
+                    <option value="0.8">High</option>
+                    <option value="0.6">Medium</option>
+                    <option value="0.4">Low</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="preview-section">
+            <h3 style="margin-bottom: 15px; color: #fff;">Preview</h3>
+            <div class="video-container">
+                <canvas id="previewCanvas" class="panorama-canvas"></canvas>
+            </div>
+            <button class="generate-btn" id="generateBtn" onclick="generateVideo()">
+                Generate Ken Burns Video
+            </button>
+            <div class="progress-bar" id="progressBar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <div class="download-section" id="downloadSection">
+            <h3 style="margin-bottom: 15px; color: #fff;">Your Video is Ready!</h3>
+            <a href="#" class="download-btn" id="downloadBtn" download="ken-burns-panorama.webm">
+                Download Video
+            </a>
+        </div>
+    </div>
+
+    <script>
+        let selectedImages = [];
+        let isGenerating = false;
+
+        // File upload handling
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const imagePreview = document.getElementById('imagePreview');
+        const zoomSlider = document.getElementById('zoomIntensity');
+        const zoomValue = document.getElementById('zoomValue');
+
+        zoomSlider.addEventListener('input', () => {
+            zoomValue.textContent = zoomSlider.value + 'x';
+        });
+
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        function handleFiles(files) {
+            selectedImages = [];
+            imagePreview.innerHTML = '';
+            
+            Array.from(files).forEach((file, index) => {
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            selectedImages.push({
+                                src: e.target.result,
+                                width: img.width,
+                                height: img.height,
+                                name: file.name
+                            });
+                            
+                            const preview = document.createElement('img');
+                            preview.src = e.target.result;
+                            preview.className = 'image-preview';
+                            preview.title = file.name;
+                            imagePreview.appendChild(preview);
+
+                            if (selectedImages.length === 1) {
+                                updatePreview();
+                            }
+                        };
+                        img.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        function updatePreview() {
+            if (selectedImages.length === 0) return;
+
+            const canvas = document.getElementById('previewCanvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            
+            img.onload = () => {
+                canvas.width = canvas.offsetWidth;
+                canvas.height = canvas.offsetHeight;
+                
+                const scale = Math.max(canvas.width / img.width, canvas.height / img.height);
+                const scaledWidth = img.width * scale;
+                const scaledHeight = img.height * scale;
+                
+                const x = (canvas.width - scaledWidth) / 2;
+                const y = (canvas.height - scaledHeight) / 2;
+                
+                ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
+            };
+            img.src = selectedImages[0].src;
+        }
+
+        async function generateVideo() {
+            if (selectedImages.length === 0) {
+                alert('Please select at least one image');
+                return;
+            }
+
+            if (isGenerating) return;
+            isGenerating = true;
+
+            const generateBtn = document.getElementById('generateBtn');
+            const progressBar = document.getElementById('progressBar');
+            const progressFill = document.getElementById('progressFill');
+            const downloadSection = document.getElementById('downloadSection');
+
+            generateBtn.disabled = true;
+            generateBtn.textContent = 'Generating...';
+            progressBar.style.display = 'block';
+            downloadSection.style.display = 'none';
+
+            try {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Video settings
+                const fps = parseInt(document.getElementById('fps').value);
+                const duration = parseFloat(document.getElementById('duration').value);
+                const zoomIntensity = parseFloat(document.getElementById('zoomIntensity').value);
+                const panDirection = document.getElementById('panDirection').value;
+                const transition = document.getElementById('transition').value;
+                const quality = parseFloat(document.getElementById('quality').value);
+
+                canvas.width = 1920;
+                canvas.height = 1080;
+
+                const stream = canvas.captureStream(fps);
+                const mediaRecorder = new MediaRecorder(stream, {
+                    mimeType: 'video/webm;codecs=vp9',
+                    videoBitsPerSecond: 5000000
+                });
+
+                const chunks = [];
+                mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(chunks, { type: 'video/webm' });
+                    const url = URL.createObjectURL(blob);
+                    const downloadBtn = document.getElementById('downloadBtn');
+                    downloadBtn.href = url;
+                    downloadSection.style.display = 'block';
+                    
+                    generateBtn.disabled = false;
+                    generateBtn.textContent = 'Generate Ken Burns Video';
+                    progressBar.style.display = 'none';
+                    isGenerating = false;
+                };
+
+                mediaRecorder.start();
+
+                const totalFrames = selectedImages.length * duration * fps;
+                let currentFrame = 0;
+
+                for (let imgIndex = 0; imgIndex < selectedImages.length; imgIndex++) {
+                    const imageData = selectedImages[imgIndex];
+                    const img = new Image();
+                    
+                    await new Promise((resolve) => {
+                        img.onload = resolve;
+                        img.src = imageData.src;
+                    });
+
+                    const framesPerImage = duration * fps;
+                    
+                    // Determine pan direction
+                    let startX, startY, endX, endY;
+                    const maxPan = 0.2; // Maximum pan distance as fraction of image size
+                    
+                    if (panDirection === 'random') {
+                        const directions = ['left-to-right', 'right-to-left', 'top-to-bottom', 'bottom-to-top'];
+                        const randomDirection = directions[Math.floor(Math.random() * directions.length)];
+                        setPanDirection(randomDirection);
+                    } else {
+                        setPanDirection(panDirection);
+                    }
+
+                    function setPanDirection(direction) {
+                        switch (direction) {
+                            case 'left-to-right':
+                                startX = -maxPan; endX = maxPan;
+                                startY = 0; endY = 0;
+                                break;
+                            case 'right-to-left':
+                                startX = maxPan; endX = -maxPan;
+                                startY = 0; endY = 0;
+                                break;
+                            case 'top-to-bottom':
+                                startX = 0; endX = 0;
+                                startY = -maxPan; endY = maxPan;
+                                break;
+                            case 'bottom-to-top':
+                                startX = 0; endX = 0;
+                                startY = maxPan; endY = -maxPan;
+                                break;
+                        }
+                    }
+
+                    for (let frame = 0; frame < framesPerImage; frame++) {
+                        const progress = frame / (framesPerImage - 1);
+                        const easeProgress = easeInOut(progress);
+                        
+                        // Calculate zoom (start normal, end zoomed)
+                        const zoom = 1 + (zoomIntensity - 1) * easeProgress;
+                        
+                        // Calculate pan position
+                        const panX = startX + (endX - startX) * easeProgress;
+                        const panY = startY + (endY - startY) * easeProgress;
+                        
+                        ctx.fillStyle = '#000';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        
+                        // Calculate image dimensions and position
+                        const scale = Math.max(canvas.width / img.width, canvas.height / img.height) * zoom;
+                        const scaledWidth = img.width * scale;
+                        const scaledHeight = img.height * scale;
+                        
+                        const centerX = canvas.width / 2 + (panX * scaledWidth);
+                        const centerY = canvas.height / 2 + (panY * scaledHeight);
+                        
+                        const x = centerX - scaledWidth / 2;
+                        const y = centerY - scaledHeight / 2;
+                        
+                        ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
+                        
+                        currentFrame++;
+                        const totalProgress = (currentFrame / totalFrames) * 100;
+                        progressFill.style.width = totalProgress + '%';
+                        
+                        await new Promise(resolve => setTimeout(resolve, 1000 / fps));
+                    }
+                }
+
+                mediaRecorder.stop();
+
+            } catch (error) {
+                console.error('Error generating video:', error);
+                alert('Error generating video. Please try again.');
+                generateBtn.disabled = false;
+                generateBtn.textContent = 'Generate Ken Burns Video';
+                progressBar.style.display = 'none';
+                isGenerating = false;
+            }
+        }
+
+        function easeInOut(t) {
+            return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+        }
+
+        // Initialize
+        window.addEventListener('resize', updatePreview);
+    </script>
+</body>
+</html>
