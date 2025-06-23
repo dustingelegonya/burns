@@ -1,1 +1,3 @@
-# buns
+# README
+
+Ken Burns Effect Generator
